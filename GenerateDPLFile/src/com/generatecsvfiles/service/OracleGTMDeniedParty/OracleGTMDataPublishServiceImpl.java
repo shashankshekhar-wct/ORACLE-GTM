@@ -41,38 +41,24 @@ public class OracleGTMDataPublishServiceImpl implements OracleGTMDataPublishServ
 
 
 
-	//@Value("${oraclegtm.xml.ftp.location}")
 	private String oracleeFtpLocation;
 
-	//@Value("${pkzipc.location}")
-	private String batchFilePath;
 
 	//@Value("${oraclegtm.csv.export.path}")
 	private String oracleGTMExportLocation=null;
 
 	
-	public static final String FILE_FORMAT_ACCCESS = ".mdb";
-	public static final String ACCCESS_TABLE = "DENIED_PARTIES";
 	public static final String FILE_FORMAT_XML = ".xml";
 	public static final String FILE_FORMAT_ZIP = ".zip";
-	public static final String FILE_FORMAT_UNIX_COMPRESSED = ".z";
-	public static final String FIXED_WIDTH = "Y";
-	public static final String TAB_SEPERATED = "T";
-	public static final String CHPOWELL_MIDPRO_FILE = "chpowell_medpro";
 
-	public static final String SAP_ZIP_DIRECTORY = "\\ZIP\\";
 	
 	private Integer recordsToFetch=1000;
 
-	private String configPath;
 	FTPService ftpService=new FTPService();
 
 	// oracle GTM Changes
-	//private InputStream fileInputStream;
 	private String fileName;
 
-	private static final String commaString = ",";
-	private static final String blankString = "";
 	Date date = new Date(System.currentTimeMillis());
 	SimpleDateFormat formatter = new SimpleDateFormat("MMddyyyy");
 	String dateDirectory = formatter.format(date);
@@ -151,7 +137,7 @@ public class OracleGTMDataPublishServiceImpl implements OracleGTMDataPublishServ
 			sourceFiles[3] = inputFileName;
 			System.out.println("GTM_DPL_DATA.CSV Created successfully for specification "+ oracleGTMExportCriteria.getUserSelectedSpecificationFileName());
 
-			//temp commenting code for inceremental data(record between specific date)
+			//TODO commenting code for incremental data(record between specific date)
 			/*
 			 * boolean isIncDataGenerated =
 			 * this.generateEaseXML(Constants.INCREMENTAL, dplTypes,
@@ -174,7 +160,7 @@ public class OracleGTMDataPublishServiceImpl implements OracleGTMDataPublishServ
 			String zipName = oracleExportLocationDirectory + File.separator + Constants.ZIP_NAME;
 			CompressFileUtil.zipDirectory(oracleExportLocationDirectory, zipName);
 			//messages.add("OracleGTM data compression status : " + isCompressed);
-
+			//TODO commenting FTP Server upload changes
 			//Boolean isFileUploaded = ftpOracleGTMData(xmlExportCriteria);
 
 			/*
@@ -388,38 +374,6 @@ public class OracleGTMDataPublishServiceImpl implements OracleGTMDataPublishServ
 		}
 	}
 
-	@Override
-	public Boolean compressUsingPkzipc(OracleGTMExportCriteria xmlExportCriteria) {
-
-		Boolean filesCompressed = false;
-		try {
-
-			String command = "";
-			if (xmlExportCriteria.getUserSelectedSpecificationFileName() != null
-					&& StringUtils.isNotBlank(xmlExportCriteria.getUserSelectedSpecificationFileName())) {
-				command = "cmd /c pkzipc_oracle_compression.bat > ouputOracle.txt " + oracleGTMExportLocation
-						+ xmlExportCriteria.getUserSelectedSpecificationFileName() + File.separator + dateDirectory
-						+ File.separator + " " + oracleGTMExportLocation
-						+ xmlExportCriteria.getUserSelectedSpecificationFileName() + File.separator + dateDirectory
-						+ File.separator;
-			}
-			else {
-
-				command = "cmd /c pkzipc_oracle_compression.bat > ouputOracle.txt " + oracleGTMExportLocation
-						+ Constants.CUSTOM_FILENAME + File.separator + dateDirectory + File.separator + " "
-						+ oracleGTMExportLocation + Constants.CUSTOM_FILENAME + File.separator + dateDirectory
-						+ File.separator;
-			}
-
-			Runtime.getRuntime().exec(command, null, new File(batchFilePath));
-			System.out.println("compressed oracleGTM data files using pkzipc.exe sucessfully");
-			filesCompressed = true;
-		}
-		catch (IOException e) {
-			System.out.println("error while compressing oracleGTM data files using pkzipc.exe");
-		}
-		return filesCompressed;
-	}
 
 	/**
 	 * generates Oracle GTMContentTypeFile CSV for the collection passed in
@@ -594,7 +548,8 @@ public class OracleGTMDataPublishServiceImpl implements OracleGTMDataPublishServ
 
 	}
 
-	/*
+	
+	/*TODO: commenting to send email DPL files to responsible representative
 	 * private void emailGenerationStatus(List<Message> messages) {
 	 * 
 	 * try { Map<String, List<Message>> model = new HashMap<String,
@@ -782,43 +737,6 @@ public class OracleGTMDataPublishServiceImpl implements OracleGTMDataPublishServ
 
 	}
 
-	private void downloadZipFile(String sourceFiles[], String destTempFileName) {
-		// String path = PropertyLoader.getKeyValue("save.file.path");
-		// destTempFileName = path.concat(destTempFileName);
-		byte buffer[] = new byte[1024];
-		try {
-			FileOutputStream fout = new FileOutputStream(destTempFileName);
-			ZipOutputStream zout = new ZipOutputStream(fout);
-			for (int i = 0; i < sourceFiles.length; i++) {
-				FileInputStream fin = new FileInputStream(sourceFiles[i]);
-				zout.putNextEntry(new ZipEntry(sourceFiles[i]));
-				int length;
-				while ((length = fin.read(buffer)) > 0)
-					zout.write(buffer, 0, length);
-				zout.closeEntry();
-
-				fin.close();
-				File f = new File(sourceFiles[i]);
-				f.delete();
-			}
-
-			zout.close();
-			// FileInputStream fileInputStream = new FileInputStream(new
-			// File(destTempFileName));
-
-		}
-		catch (Exception ex) {
-			System.out.println("Unable to  export file for data type : ");
-
-		}
-		finally {
-			try {
-				(new File(destTempFileName)).delete();
-			}
-			catch (Exception ex) {
-			}
-		}
-	}
 
 	@Override
 	public void generateOracleGTMDataFromConfigFile() {
@@ -842,7 +760,7 @@ public class OracleGTMDataPublishServiceImpl implements OracleGTMDataPublishServ
 				InputStreamReader isr = new InputStreamReader(fis, StandardCharsets.ISO_8859_1);
 				CSVReader reader = new CSVReader(isr);
 				specifications = reader.readAll();
-				System.out.println("Number of Total specification in oracle-gtm is " + (specifications.size()-1));
+				System.out.println("Number of Total specification for Oracle-GTM is " + (specifications.size()-1));
 
 				List<OracleGTMExportCriteria> listSpecification = new ArrayList<OracleGTMExportCriteria>();
 				for (int i = 1; i < specifications.size(); i++) {
@@ -902,17 +820,6 @@ public class OracleGTMDataPublishServiceImpl implements OracleGTMDataPublishServ
 
 	public void setOracleeFtpLocation(String oracleeFtpLocation) {
 		this.oracleeFtpLocation = oracleeFtpLocation;
-	}
-
-	public static void main(String[] args) {
-		try {
-			OracleGTMDataPublishService om = new OracleGTMDataPublishServiceImpl();
-			om.generateOracleGTMDataFromConfigFile();
-		}
-		catch (Exception e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
 	}
 
 }

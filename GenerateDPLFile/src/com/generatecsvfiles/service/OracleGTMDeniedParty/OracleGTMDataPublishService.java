@@ -16,8 +16,6 @@ public interface OracleGTMDataPublishService {
 	 * page
 	 */
 
-	public Boolean compressUsingPkzipc(OracleGTMExportCriteria xmlExportCriteria);
-
 	public void generateOracleGTMData(OracleGTMExportCriteria xmlExportCriteria);
 
 	public Boolean ftpOracleGTMData(OracleGTMExportCriteria xmlExportCriteria);
