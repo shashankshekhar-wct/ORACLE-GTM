@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<classpath>
+	<classpathentry kind="src" path="src"/>
+	<classpathentry kind="lib" path="commons-lang3-3.6.jar"/>
+	<classpathentry kind="lib" path="ojdbc6.jar"/>
+	<classpathentry kind="lib" path="sqljdbc4-4.0.jar"/>
+	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
+	<classpathentry kind="lib" path="commons-io-1.4.jar"/>
+	<classpathentry kind="lib" path="opencsv-2.3.jar"/>
+	<classpathentry kind="lib" path="commons-net-3.3.jar"/>
+	<classpathentry kind="output" path="bin"/>
+</classpath>
