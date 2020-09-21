@@ -33,7 +33,7 @@ public class DataPublishDaoImpl implements DataPublishDao {
 	private static final String GET_DATE_BY_DATE_STATE = "SELECT DATE FROM DATE_CONTROL WHERE DATE_STATE= ?";
 
 	
-	private static final String GET_EASE_DATA = "select * from (SELECT ROW_NUMBER() OVER ( ORDER BY DPL_ID ) AS RowNum,"
+	private static final String GET_ENTIRE_DPL_DATA = "select * from (SELECT ROW_NUMBER() OVER ( ORDER BY DPL_ID ) AS RowNum,"
 			+ " DPL_ID,DPL_STATUS,DPL_NAME,DPL_ADDRESS_1" + ",DPL_ADDRESS_2,DPL_ADDRESS_3,DPL_STATE,"
 			+ "DPL_COUNTRY,DPL_COUNTRY_OF_ORIGIN,DPL_SEE_ALSO,DPL_PRIVILEGES,DPL_EFFECTIVE_DATE,DPL_EXPIRY_DATE,"
 			+ "DPL_FRC_DATE,DPL_FRC,"
@@ -71,7 +71,7 @@ public class DataPublishDaoImpl implements DataPublishDao {
 
 	
 	@Override
-	public List<OracleGTMDeniedParties> getEaseEntireData(List<String> dplStatus, List<String> dplTypes, Integer start,
+	public List<OracleGTMDeniedParties> getDPLEntireData(List<String> dplStatus, List<String> dplTypes, Integer start,
 			Integer end) {
 
 		Map<String, Object> parameters = new HashMap<String, Object>();
@@ -93,7 +93,7 @@ public class DataPublishDaoImpl implements DataPublishDao {
 				dplStatusBuilder.append("?,");
 			}
 			
-			String stmt = GET_EASE_DATA + dpltypesBuilder.deleteCharAt( dpltypesBuilder.length() -1 ).toString() + ") and DPL_STATUS IN (" + dplStatusBuilder.deleteCharAt( dplStatusBuilder.length() -1 ).toString() + ")) as rowResult where RowNum >= ? and RowNum <= ?";
+			String stmt = GET_ENTIRE_DPL_DATA + dpltypesBuilder.deleteCharAt( dpltypesBuilder.length() -1 ).toString() + ") and DPL_STATUS IN (" + dplStatusBuilder.deleteCharAt( dplStatusBuilder.length() -1 ).toString() + ")) as rowResult where RowNum >= ? and RowNum <= ?";
 			ps = con.prepareStatement(stmt);
 			
 			int index = 1;
@@ -115,14 +115,14 @@ public class DataPublishDaoImpl implements DataPublishDao {
 				oracleGTMDeniedParties.setDplId("900_" + rs.getInt("DPL_ID"));
 				if (StringUtils.isBlank(rs.getString("DPL_ENTITY_TYPE"))
 						|| rs.getString("DPL_ENTITY_TYPE").trim().equalsIgnoreCase("Individual")) {
-					oracleGTMDeniedParties.setFirstName(rs.getString("DPL_ENTITY_TYPE"));
+					oracleGTMDeniedParties.setFirstName(rs.getString("DPL_NAME"));
 				}
 				else if (rs.getString("DPL_ENTITY_TYPE").trim().equalsIgnoreCase("Firm")
 						|| rs.getString("DPL_ENTITY_TYPE").trim().equalsIgnoreCase("AIRCRAFT")) {
-					oracleGTMDeniedParties.setCompanyName(rs.getString("DPL_ENTITY_TYPE"));
+					oracleGTMDeniedParties.setCompanyName(rs.getString("DPL_NAME"));
 				}
 				else if (rs.getString("DPL_ENTITY_TYPE").trim().equalsIgnoreCase("Vessel")) {
-					oracleGTMDeniedParties.setVessleName(rs.getString("DPL_ENTITY_TYPE").trim());
+					oracleGTMDeniedParties.setVessleName(rs.getString("DPL_NAME").trim());
 				}
 				oracleGTMDeniedParties.setDplAddress1(rs.getString("DPL_ADDRESS_1"));
 				oracleGTMDeniedParties.setDplAddress2(rs.getString("DPL_ADDRESS_2"));
@@ -215,6 +215,7 @@ public class DataPublishDaoImpl implements DataPublishDao {
 				else {
 					oracleGTMDeniedParties.setCountry1IsoCode("XX");
 				}
+				oracleGTMDeniedParties.setDplSeeAlso(rs.getString("DPL_SEE_ALSO"));
 
 				oracleGTMParsedData.add(oracleGTMDeniedParties);
 				
@@ -235,7 +236,7 @@ public class DataPublishDaoImpl implements DataPublishDao {
 	}
 
 	@Override
-	public List<OracleGTMDeniedParties> getEaseIncrementalData(List<String> dplStatus, List<String> dplTypes, Integer start,
+	public List<OracleGTMDeniedParties> getDPLIncrementalData(List<String> dplStatus, List<String> dplTypes, Integer start,
 			Integer end, Date lastDataPusblisDate, Date currentDataPusblisDate) {
 
 		Map<String, Object> parameters = new HashMap<String, Object>();
@@ -250,7 +251,7 @@ public class DataPublishDaoImpl implements DataPublishDao {
 		try {
 
 			con = JDBCUtil.getConnection();
-			ps = con.prepareStatement(GET_EASE_DATA);
+			ps = con.prepareStatement(GET_ENTIRE_DPL_DATA);
 			ps.setString(1, dplTypes.toString());
 			ps.setString(2, dplStatus.toString());
 			ps.setInt(3, start);
@@ -364,6 +365,7 @@ public class DataPublishDaoImpl implements DataPublishDao {
 				else {
 					oracleGTMDeniedParties.setCountry1IsoCode("XX");
 				}
+				oracleGTMDeniedParties.setDplSeeAlso(rs.getString("DPL_SEE_ALSO"));
 
 				oracleGTMParsedData.add(oracleGTMDeniedParties);
 			
@@ -382,7 +384,7 @@ public class DataPublishDaoImpl implements DataPublishDao {
 	}
 
 	@Override
-	public Integer easeEntiredataCount(List<String> dplStatus, List<String> dplTypes) {
+	public Integer dplEntiredataCount(List<String> dplStatus, List<String> dplTypes) {
 
 		Map<String, Object> parameters = new HashMap<String, Object>();
 		parameters.put("dpltypes", dplTypes);
@@ -431,7 +433,7 @@ public class DataPublishDaoImpl implements DataPublishDao {
 	}
 
 	@Override
-	public Integer easeIncrementalDataCount(List<String> dplStatus, List<String> dplTypes, Date lastDataPusblisDate,
+	public Integer dplIncrementalDataCount(List<String> dplStatus, List<String> dplTypes, Date lastDataPusblisDate,
 			Date currentDataPusblisDate) {
 
 		Map<String, Object> parameters = new HashMap<String, Object>();

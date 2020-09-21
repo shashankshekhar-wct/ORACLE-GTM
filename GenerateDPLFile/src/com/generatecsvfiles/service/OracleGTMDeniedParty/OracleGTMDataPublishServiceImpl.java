@@ -19,6 +19,7 @@ import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
 import com.generatecsvfiles.dto.OracleGTMDeniedParties;
+import com.generatecsvfiles.dto.OracleGTMDeniedPartiesLink;
 import com.generatecsvfiles.service.OracleGTMDeniedParty.Dao.DataPublishDao;
 import com.generatecsvfiles.service.OracleGTMDeniedParty.Dao.DataPublishDaoImpl;
 import com.generatecsvfiles.utility.CSVUtils;
@@ -119,24 +120,21 @@ public class OracleGTMDataPublishServiceImpl implements OracleGTMDataPublishServ
 
 			//messages.add("Existing directory cleaned successfully");
 
-			// call generate csv files here String inputFileName =""; //
-			String sourceFiles[] = new String[6];
-			String inputFileName = "";
+			// call generate csv files//
 			// File1
-			inputFileName = generateGTMContentTypeFile(oracleGTMExportCriteria);
+			Boolean isContentFileGenerated = generateGTMContentTypeFile(oracleGTMExportCriteria);
 			System.out.println("GTM_CONTENT_TYPE.CSV Created successfully for specification " + oracleGTMExportCriteria.getUserSelectedSpecificationFileName());
-			sourceFiles[0] = inputFileName; // File2
-			inputFileName = generateGTMContentSourceFile(oracleGTMExportCriteria);
+			Boolean isContentSourceFileGenerated = generateGTMContentSourceFile(oracleGTMExportCriteria);
 			System.out.println("GTM_CONTENT_SOURCE.CSV Created successfully for specification "+ oracleGTMExportCriteria.getUserSelectedSpecificationFileName());
-			sourceFiles[1] = inputFileName; // File3
-			inputFileName = generateDataVersionFile(oracleGTMExportCriteria);
-			sourceFiles[2] = inputFileName; // File4
+			Boolean isDataVersionFileGenerated = generateDataVersionFile(oracleGTMExportCriteria);
 			System.out.println("DATA_VERSION.CSV Created successfully for specification "+ oracleGTMExportCriteria.getUserSelectedSpecificationFileName());
-			inputFileName = generateOracleGTMDeniedPartyCSV(Constants.ENTIRE, dplTypes, lastDataPusblisDate,
+			Boolean isDPLFileGenerated = generateOracleGTMDeniedPartyCSV(Constants.ENTIRE, dplTypes, lastDataPusblisDate,
 					currentDataPusblisDate, oracleGTMExportCriteria);
-			sourceFiles[3] = inputFileName;
 			System.out.println("GTM_DPL_DATA.CSV Created successfully for specification "+ oracleGTMExportCriteria.getUserSelectedSpecificationFileName());
 
+			if(isContentFileGenerated && isContentSourceFileGenerated && isDataVersionFileGenerated && isDPLFileGenerated  ) {
+				System.out.println("ALL Oracle GTM required files are generated at location " +oracleGTMExportLocation + Constants.CUSTOM_FILENAME + File.separator + dateDirectory);
+			}
 			//TODO commenting code for incremental data(record between specific date)
 			/*
 			 * boolean isIncDataGenerated =
@@ -261,7 +259,7 @@ public class OracleGTMDataPublishServiceImpl implements OracleGTMDataPublishServ
 				// nonGsaFileName = EASE_ENTIRE_WITHOUT_GSA;
 
 				// dplStatuses = dplStatuses(Constants.ACTIVE);
-				count = dataPublishDao.easeEntiredataCount(dplStatuses, dplTypes);
+				count = dataPublishDao.dplEntiredataCount(dplStatuses, dplTypes);
 				//System.out.println("number of records for specification " +oracleGTMExportCriteria.getUserSelectedSpecificationFileName() + "is " + count);
 			}
 			else {
@@ -271,7 +269,7 @@ public class OracleGTMDataPublishServiceImpl implements OracleGTMDataPublishServ
 
 				// add both active as well as deleted status
 				// dplStatuses = dplStatuses(null);
-				count = dataPublishDao.easeIncrementalDataCount(dplStatuses, dplTypes, lastDataPusblisDate,
+				count = dataPublishDao.dplIncrementalDataCount(dplStatuses, dplTypes, lastDataPusblisDate,
 						currentDataPusblisDate);
 				System.out.println("number of records for specification " +oracleGTMExportCriteria.getUserSelectedSpecificationFileName() + " is " + count);
 			}
@@ -285,10 +283,10 @@ public class OracleGTMDataPublishServiceImpl implements OracleGTMDataPublishServ
 
 				if (type.equalsIgnoreCase(Constants.ENTIRE)) {
 
-					deniedParties.addAll(dataPublishDao.getEaseEntireData(dplStatuses, dplTypes, start, end));
+					deniedParties.addAll(dataPublishDao.getDPLEntireData(dplStatuses, dplTypes, start, end));
 				}
 				else {
-					deniedParties.addAll(dataPublishDao.getEaseEntireData(dplStatuses, dplTypes, start, end));
+					deniedParties.addAll(dataPublishDao.getDPLEntireData(dplStatuses, dplTypes, start, end));
 					//deniedParties.addAll(processDataForOracleCSV(dataPublishDao.getEaseIncrementalData(dplStatuses,
 							//dplTypes, start, end, lastDataPusblisDate, currentDataPusblisDate), xmlExportCriteria));
 				}
@@ -378,17 +376,18 @@ public class OracleGTMDataPublishServiceImpl implements OracleGTMDataPublishServ
 	/**
 	 * generates Oracle GTMContentTypeFile CSV for the collection passed in
 	 * 
-	 * @param xmlExportCriteria
+	 * @param oracleGTMExportCriteria
 	 * @throws Exception
 	 */
-	private String generateGTMContentTypeFile(OracleGTMExportCriteria xmlExportCriteria) throws Exception {
+	private Boolean generateGTMContentTypeFile(OracleGTMExportCriteria oracleGTMExportCriteria) throws Exception {
 
 		// String path = PropertyLoader.getKeyValue("save.file.path");
 		this.fileName = "GTM_CONTENT_TYPE.CSV";
-		String inputFileName = oracleGTMExportLocation + xmlExportCriteria.getUserSelectedSpecificationFileName()
+		String inputFileName = oracleGTMExportLocation + oracleGTMExportCriteria.getUserSelectedSpecificationFileName()
 				+ File.separator + dateDirectory + File.separator + fileName;
 		FileWriter fw = new FileWriter(inputFileName);
 		BufferedWriter bw=null;
+		Boolean isContentType=false;
 
 		try {
 			bw = new BufferedWriter(fw);
@@ -406,13 +405,16 @@ public class OracleGTMDataPublishServiceImpl implements OracleGTMDataPublishServ
 
 			dplHeader = PropertyLoader.getKeyValue("DPL.GTM_CONTENT_TYPE.HEADER4");
 			bw.append(dplHeader + "\n");
+			isContentType=true;
 		}
 		catch (IOException e) {
-			System.out.println("error occurred while generating oracle gtm content type CSV");
+			isContentType=false;
+			System.out.println("Error occurred while generating oracle gtm content type CSV for specification " +oracleGTMExportCriteria.getUserSelectedSpecificationFileName());
 			e.printStackTrace();
 		}
 		catch (Exception e) {
-			System.out.println("error occurred while generating oracle gtm content type CSV");
+			isContentType=false;
+			System.out.println("Error occurred while generating oracle gtm content type CSV for specification " +oracleGTMExportCriteria.getUserSelectedSpecificationFileName());
 			e.printStackTrace();
 		}
 		finally {
@@ -428,23 +430,24 @@ public class OracleGTMDataPublishServiceImpl implements OracleGTMDataPublishServ
 			}
 		}
 
-		return inputFileName;
+		return isContentType;
 
 	}
 
 	/**
 	 * generates Oracle GTMContentsourceFile CSV for the collection passed in
 	 * 
-	 * @param xmlExportCriteria
+	 * @param oracleGTMExportCriteria
 	 * @throws Exception
 	 */
-	private String generateGTMContentSourceFile(OracleGTMExportCriteria xmlExportCriteria) throws Exception {
+	private Boolean generateGTMContentSourceFile(OracleGTMExportCriteria oracleGTMExportCriteria) throws Exception {
 
 		this.fileName = "GTM_CONTENT_SOURCE.CSV";
-		String inputFileName = oracleGTMExportLocation + xmlExportCriteria.getUserSelectedSpecificationFileName()
+		String inputFileName = oracleGTMExportLocation + oracleGTMExportCriteria.getUserSelectedSpecificationFileName()
 				+ File.separator + dateDirectory + File.separator + fileName;
 		FileWriter fw = new FileWriter(inputFileName);
 		BufferedWriter bw =null;
+		Boolean isContentFileGenerated=false;
 
 		try {
 
@@ -463,14 +466,16 @@ public class OracleGTMDataPublishServiceImpl implements OracleGTMDataPublishServ
 
 				dplHeader = PropertyLoader.getKeyValue("DPL.GTM_CONTENT_SOURCE.HEADER4");
 				bw.append(dplHeader + "\n");
-				
+				isContentFileGenerated=true;
 		}
 		catch (IOException e) {
-			System.out.println("error occurred while generating oracle gtm content source CSV");
+			isContentFileGenerated=false;
+			System.out.println("Error occurred while generating oracle gtm content source CSV for specification " + oracleGTMExportCriteria.getUserSelectedSpecificationFileName() );
 			e.printStackTrace();
 		}
 		catch (Exception e) {
-			System.out.println("error occurred while generating oracle gtm content source CSV");
+			isContentFileGenerated=false;
+			System.out.println("Error occurred while generating oracle gtm content source CSV for specification " + oracleGTMExportCriteria.getUserSelectedSpecificationFileName() );
 			e.printStackTrace();
 		}
 		finally {
@@ -486,7 +491,7 @@ public class OracleGTMDataPublishServiceImpl implements OracleGTMDataPublishServ
 			}
 		}
 
-		return inputFileName;
+		return isContentFileGenerated;
 	}
 
 	/**
@@ -498,13 +503,14 @@ public class OracleGTMDataPublishServiceImpl implements OracleGTMDataPublishServ
 	 *             Exception
 	 */
 
-	private String generateDataVersionFile(OracleGTMExportCriteria xmlExportCriteria) throws Exception {
+	private Boolean generateDataVersionFile(OracleGTMExportCriteria oracleGTMExportCriteria) throws Exception {
 
 		this.fileName = "DATA_VERSION.CSV";
-		String inputFileName = oracleGTMExportLocation + xmlExportCriteria.getUserSelectedSpecificationFileName()
+		String inputFileName = oracleGTMExportLocation + oracleGTMExportCriteria.getUserSelectedSpecificationFileName()
 				+ File.separator + dateDirectory + File.separator + fileName;
 		FileWriter fw = new FileWriter(inputFileName);
 		BufferedWriter bw = null;
+		Boolean isDataVersionFileGenerated=false;
 
 		try {
 
@@ -522,13 +528,16 @@ public class OracleGTMDataPublishServiceImpl implements OracleGTMDataPublishServ
 
 			dplHeader = PropertyLoader.getKeyValue("DPL.GTM_DATA_VERSION.HEADER4");
 			bw.append(dplHeader + "\n");
+			isDataVersionFileGenerated=true;
 		}
 		catch (IOException e) {
-			System.out.println("error occurred while oracle gtm data version CSV");
+			isDataVersionFileGenerated=false;
+			System.out.println("error occurred while oracle gtm data version CSV for specification, " + oracleGTMExportCriteria.getUserSelectedSpecificationFileName());
 			e.printStackTrace();
 		}
 		catch (Exception e) {
-			System.out.println("error occurred while oracle gtm data version CSV");
+			isDataVersionFileGenerated=false;
+			System.out.println("error occurred while oracle gtm data version CSV for specification, " + oracleGTMExportCriteria.getUserSelectedSpecificationFileName());
 			e.printStackTrace();
 		}
 		finally {
@@ -544,7 +553,7 @@ public class OracleGTMDataPublishServiceImpl implements OracleGTMDataPublishServ
 			}
 		}
 
-		return inputFileName;
+		return isDataVersionFileGenerated;
 
 	}
 
@@ -567,12 +576,13 @@ public class OracleGTMDataPublishServiceImpl implements OracleGTMDataPublishServ
 	/*
 	 * Generate denided party data and export it into csv for oracle gtm
 	 */
-	private String generateOracleGTMDeniedPartyCSV(String type, List<String> dplTypes, Date lastDataPusblisDate,
+	private Boolean generateOracleGTMDeniedPartyCSV(String type, List<String> dplTypes, Date lastDataPusblisDate,
 			Date currentDataPusblisDate, OracleGTMExportCriteria oracleGTMExportCriteria) throws Exception {
 		this.fileName = "GTM_DENIED_PARTY.CSV";
 		String inputFileName = oracleGTMExportLocation + oracleGTMExportCriteria.getUserSelectedSpecificationFileName()
 				+ File.separator + dateDirectory + File.separator + fileName;
 		FileWriter fw = new FileWriter(inputFileName);
+		Boolean isOracleDPLDataFileGenerated=false;
 
 		try {
 
@@ -661,13 +671,27 @@ public class OracleGTMDataPublishServiceImpl implements OracleGTMDataPublishServ
 
 			List<OracleGTMDeniedParties> deniedPartiesList = generateOracleGTMCSV(Constants.ENTIRE, dplTypes,
 					lastDataPusblisDate, currentDataPusblisDate, oracleGTMExportCriteria);
-			writeLineInCSVForDeniedPartyList(fw, deniedPartiesList);
-
+			
+			//set new list based on aka, if we have 4 record in aka
+			//(i.e seperated by semi colon then we will add 5 entry for that DPL ID, one would be master and 4 would be linked with aka)
+			Map<String, Object> dplDataCategories=setFinalDPLListBasedONAKA(deniedPartiesList);
+			List<OracleGTMDeniedPartiesLink>oracleGTMDeniedPartiesLinkList  =(List<OracleGTMDeniedPartiesLink>) dplDataCategories.get("finalDPLLinkData");
+			System.out.println("Number of linked DPL entities for Specification " + " "+oracleGTMExportCriteria.getUserSelectedSpecificationFileName() + " is "+oracleGTMDeniedPartiesLinkList.size());
+			generateOracleGTMDeniedPartyLinkCSV(oracleGTMExportCriteria, oracleGTMDeniedPartiesLinkList);
+			
+			List<OracleGTMDeniedParties>oracleGTMDeniedParties  =(List<OracleGTMDeniedParties>) dplDataCategories.get("finalDPLData");
+			System.out.println("Total Number of final DPL data with aka for specification " + " "+oracleGTMExportCriteria.getUserSelectedSpecificationFileName() + " is "+oracleGTMDeniedParties.size());
+			writeLineInCSVForDeniedPartyList(fw, oracleGTMDeniedParties);
+			isOracleDPLDataFileGenerated=true;
 		}
 		catch (IOException e) {
+			System.out.println("Exception occured while generating DPL data for specification," +oracleGTMExportCriteria.getUserSelectedSpecificationFileName());
+			isOracleDPLDataFileGenerated=false;
 			e.printStackTrace();
 		}
 		catch (Exception e) {
+			isOracleDPLDataFileGenerated=false;
+			System.out.println("Exception occured while generating DPL data for specification," +oracleGTMExportCriteria.getUserSelectedSpecificationFileName());
 			e.printStackTrace();
 		}
 		finally {
@@ -675,8 +699,113 @@ public class OracleGTMDataPublishServiceImpl implements OracleGTMDataPublishServ
 			fw.close();
 		}
 
-		return inputFileName;
+		return isOracleDPLDataFileGenerated;
 	}
+	
+	public Map<String,Object> setFinalDPLListBasedONAKA(List<OracleGTMDeniedParties> oracleGTMDeniedPartiesList) {
+		List<OracleGTMDeniedParties> finaldeniedPartiesList = new ArrayList<OracleGTMDeniedParties>();
+		List<OracleGTMDeniedPartiesLink> dplLinkAKAList = new ArrayList<OracleGTMDeniedPartiesLink>();
+		 Map<String, Object> finalDPLListMap = new HashMap<>();
+		 
+		for(OracleGTMDeniedParties dplData :oracleGTMDeniedPartiesList) {
+			
+
+			//if no aka is linked with dpl data the their would be only one entry
+			OracleGTMDeniedParties oracleGTMDeniedParties = new OracleGTMDeniedParties();
+
+			oracleGTMDeniedParties.setDplId(dplData.getDplId());
+			
+			if (StringUtils.isNotBlank(dplData.getFirstName())) {
+				oracleGTMDeniedParties.setFirstName(dplData.getFirstName());
+			}
+			else if (StringUtils.isNotBlank(dplData.getCompanyName())) {
+				oracleGTMDeniedParties.setCompanyName(dplData.getCompanyName());
+			}
+			else if (StringUtils.isNotBlank(dplData.getVessleName())) {
+				oracleGTMDeniedParties.setVessleName(dplData.getVessleName());
+			}
+			
+			oracleGTMDeniedParties.setDplAddress1(dplData.getDplAddress1());
+			oracleGTMDeniedParties.setDplAddress2(dplData.getDplAddress2());
+			oracleGTMDeniedParties.setCity(dplData.getCity());
+			
+			oracleGTMDeniedParties.setProvince(dplData.getProvince());
+			oracleGTMDeniedParties.setPostalCode(dplData.getPostalCode());
+			oracleGTMDeniedParties.setCountryName(dplData.getCountryName());
+			oracleGTMDeniedParties.setDplEffectiveDate(dplData.getDplEffectiveDate());
+			oracleGTMDeniedParties.setDplExpiryDate(dplData.getDplExpiryDate());
+			oracleGTMDeniedParties.setDeniedCode(dplData.getDeniedCode());
+			oracleGTMDeniedParties.setEntryDate(dplData.getEntryDate());
+			oracleGTMDeniedParties.setEntryId(dplData.getEntryId());
+			oracleGTMDeniedParties.setAgencyCode(dplData.getAgencyCode());
+			oracleGTMDeniedParties.setRulingVolume(dplData.getRulingVolume());
+			oracleGTMDeniedParties.setFederalRegDate(dplData.getFederalRegDate());
+			oracleGTMDeniedParties.setNotes(dplData.getNotes());
+			oracleGTMDeniedParties.setIsInUse(dplData.getIsInUse());
+			oracleGTMDeniedParties.setDplURL(dplData.getDplURL());
+			oracleGTMDeniedParties.setDomainName(dplData.getDomainName());
+			oracleGTMDeniedParties.setCountry1IsoCode(dplData.getCountry1IsoCode());
+			
+			finaldeniedPartiesList.add(oracleGTMDeniedParties);
+			
+			if(StringUtils.isNotBlank(dplData.getDplSeeAlso())) {
+				
+				String[] akaParts = StringUtils.replace(dplData.getDplSeeAlso(), "a.k.a.", "").split(";");
+				int i=0;
+				for(String aka:akaParts) {
+					i++;
+					OracleGTMDeniedParties oracleGTMDeniedPartiesAka = new OracleGTMDeniedParties();
+					OracleGTMDeniedPartiesLink oracleGTMDeniedPartiesLink=new OracleGTMDeniedPartiesLink();
+
+					oracleGTMDeniedPartiesAka.setDplId(dplData.getDplId()+"-"+i);
+					//set link information
+					oracleGTMDeniedPartiesLink.setGtmParentDPLID(StringUtils.replace(dplData.getDplId(), "900_", ""));
+					oracleGTMDeniedPartiesLink.setGtmChildDPLID(StringUtils.replace(oracleGTMDeniedPartiesAka.getDplId(), "900_", ""));
+					//oracleGTMDeniedPartiesLink.setGtmChildDPLID(oracleGTMDeniedPartiesAka.getDplId());
+					oracleGTMDeniedPartiesLink.setDomainName("GTM");
+					
+					if (StringUtils.isNotBlank(dplData.getFirstName())) {
+						oracleGTMDeniedPartiesAka.setFirstName(aka);
+					}
+					else if (StringUtils.isNotBlank(dplData.getCompanyName())) {
+						oracleGTMDeniedPartiesAka.setCompanyName(aka);
+					}
+					else if (StringUtils.isNotBlank(dplData.getVessleName())) {
+						oracleGTMDeniedPartiesAka.setVessleName(aka);
+					}
+					
+					oracleGTMDeniedPartiesAka.setDplAddress1(dplData.getDplAddress1());
+					oracleGTMDeniedPartiesAka.setDplAddress2(dplData.getDplAddress2());
+					oracleGTMDeniedPartiesAka.setCity(dplData.getCity());
+					
+					oracleGTMDeniedPartiesAka.setProvince(dplData.getProvince());
+					oracleGTMDeniedPartiesAka.setPostalCode(dplData.getPostalCode());
+					oracleGTMDeniedPartiesAka.setCountryName(dplData.getCountryName());
+					oracleGTMDeniedPartiesAka.setDplEffectiveDate(dplData.getDplEffectiveDate());
+					oracleGTMDeniedPartiesAka.setDplExpiryDate(dplData.getDplExpiryDate());
+					oracleGTMDeniedPartiesAka.setDeniedCode(dplData.getDeniedCode());
+					oracleGTMDeniedPartiesAka.setEntryDate(dplData.getEntryDate());
+					oracleGTMDeniedPartiesAka.setEntryId(dplData.getEntryId());
+					oracleGTMDeniedPartiesAka.setAgencyCode(dplData.getAgencyCode());
+					oracleGTMDeniedPartiesAka.setRulingVolume(dplData.getRulingVolume());
+					oracleGTMDeniedPartiesAka.setFederalRegDate(dplData.getFederalRegDate());
+					oracleGTMDeniedPartiesAka.setNotes(dplData.getNotes());
+					oracleGTMDeniedPartiesAka.setIsInUse(dplData.getIsInUse());
+					oracleGTMDeniedPartiesAka.setDplURL(dplData.getDplURL());
+					oracleGTMDeniedPartiesAka.setDomainName(dplData.getDomainName());
+					oracleGTMDeniedPartiesAka.setCountry1IsoCode(dplData.getCountry1IsoCode());
+					
+					finaldeniedPartiesList.add(oracleGTMDeniedPartiesAka);
+					dplLinkAKAList.add(oracleGTMDeniedPartiesLink);
+				}
+			}
+		}
+		finalDPLListMap.put("finalDPLData", finaldeniedPartiesList);
+		finalDPLListMap.put("finalDPLLinkData", dplLinkAKAList);
+		return finalDPLListMap;
+		
+	}
+	
 
 	private void writeLineInCSVForDeniedPartyList(FileWriter fw, List<OracleGTMDeniedParties> deniedParties)
 			throws IOException, Exception {
@@ -738,6 +867,91 @@ public class OracleGTMDataPublishServiceImpl implements OracleGTMDataPublishServ
 	}
 
 
+	private String generateOracleGTMDeniedPartyLinkCSV(OracleGTMExportCriteria oracleGTMExportCriteria,List<OracleGTMDeniedPartiesLink>oracleGTMDeniedPartiesLink ) throws Exception {
+		this.fileName = "GTM_DENIED_PARTY_LINK.CSV";
+		String inputFileName = oracleGTMExportLocation + oracleGTMExportCriteria.getUserSelectedSpecificationFileName()
+				+ File.separator + dateDirectory + File.separator + fileName;
+		FileWriter fw = new FileWriter(inputFileName);
+
+		try {
+
+			BufferedWriter bw = new BufferedWriter(fw);
+
+			List<String> headerList1 = new ArrayList<>();
+
+			for (int i = 1; i <= 8; i++) {
+				if (i == 1) {
+					headerList1.add("GTM_DENIED_PARTY_LINK");
+				}
+				else {
+					headerList1.add("");
+				}
+			}
+			// for header1
+			CSVUtils.writeLine(fw, headerList1);
+
+			List<String> headerList2 = new ArrayList<>();
+
+			headerList2.add("GTM_DENIED_PARTY_PARENT");
+			headerList2.add("GTM_DENIED_PARTY_CHILD");
+			headerList2.add("DOMAIN_NAME");
+			headerList2.add("INSERT_USER");
+			headerList2.add("INSERT_DATE");
+			headerList2.add("UPDATE_USER");
+			headerList2.add("UPDATE_DATE");
+			
+			// for header2
+			CSVUtils.writeLine(fw, headerList2);
+
+			List<String> headerList3 = new ArrayList<>();
+
+			for (int i = 1; i <= 8; i++) {
+				if (i == 1) {
+					headerList3.add("EXEC SQL ALTER SESSION SET NLS_DATE_FORMAT = 'YYYYMMDDHH24MISS'");
+				}
+				else {
+					headerList3.add("");
+				}
+			}
+
+			// for header3
+			CSVUtils.writeLine(fw, headerList3);
+
+			headerList1 = null;
+			headerList2 = null;
+			headerList3 = null;
+
+			for (OracleGTMDeniedPartiesLink dplLink : oracleGTMDeniedPartiesLink) {
+				List<String> list = new ArrayList<>();
+
+				list.add(dplLink.getGtmParentDPLID());
+				list.add(dplLink.getGtmChildDPLID());
+				list.add(dplLink.getDomainName());
+				list.add(dplLink.getInsertUser());
+				list.add(dplLink.getInsertDate());
+				list.add(dplLink.getUpdateUser());
+				list.add(dplLink.getUpdateDate());
+				
+				CSVUtils.writeLine(fw, list, ' ', ' ');
+
+			}
+		}
+		catch (IOException e) {
+			System.out.println("Error occurred while generating oracle DPL Link data CSV");
+			e.printStackTrace();
+		}
+		catch (Exception e) {
+			System.out.println("Error occurred while generating oracle DPL Link data CSV");
+			e.printStackTrace();
+		}
+		finally {
+			fw.flush();
+			fw.close();
+		}
+
+		return inputFileName;
+	}
+
 	@Override
 	public void generateOracleGTMDataFromConfigFile() {
 
@@ -751,10 +965,10 @@ public class OracleGTMDataPublishServiceImpl implements OracleGTMDataPublishServ
 			// configPath = (String) xmlNode.lookup("config");
 			// String oracleGTMSpecificationfileName = configPath +
 			// "oraclegtm-specification.csv";
-			System.out.println("loading Specification data from file for oracle GTM " + oracleGTMSpecificationfileName);
+			System.out.println("Loading Specification data for oracle GTM from file " + oracleGTMSpecificationfileName);
 			File specificationFile = new File(oracleGTMSpecificationfileName);
 			if (specificationFile.exists()) {
-				System.out.println("oracle gtm data file exists " + specificationFile);
+				System.out.println("Oracle GTM data file exists " + specificationFile);
 				// read csv file in csv reader
 				FileInputStream fis = new FileInputStream(specificationFile);
 				InputStreamReader isr = new InputStreamReader(fis, StandardCharsets.ISO_8859_1);

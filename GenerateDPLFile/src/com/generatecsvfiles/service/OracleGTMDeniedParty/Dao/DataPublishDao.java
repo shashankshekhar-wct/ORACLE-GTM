@@ -14,14 +14,14 @@ import com.generatecsvfiles.dto.OracleGTMDeniedParties;
 public interface DataPublishDao {
 
 
-	public Integer easeEntiredataCount(List<String> dplStatus, List<String> dplTypes);
+	public Integer dplEntiredataCount(List<String> dplStatus, List<String> dplTypes);
 
-	public Integer easeIncrementalDataCount(List<String> dplStatus, List<String> dplTypes,Date lastDataPusblisDate,Date currentDataPusblisDate);
+	public Integer dplIncrementalDataCount(List<String> dplStatus, List<String> dplTypes,Date lastDataPusblisDate,Date currentDataPusblisDate);
 
-	public List<OracleGTMDeniedParties> getEaseEntireData(List<String> dplStatus, List<String> dplTypes, Integer start,
+	public List<OracleGTMDeniedParties> getDPLEntireData(List<String> dplStatus, List<String> dplTypes, Integer start,
 			Integer end);
 
-	public List<OracleGTMDeniedParties> getEaseIncrementalData(List<String> dplStatus, List<String> dplTypes, Integer start,
+	public List<OracleGTMDeniedParties> getDPLIncrementalData(List<String> dplStatus, List<String> dplTypes, Integer start,
 			Integer end,Date lastDataPusblisDate,Date currentDataPusblisDate);
 
 	 public Date getDateByDateState(String dateState);
