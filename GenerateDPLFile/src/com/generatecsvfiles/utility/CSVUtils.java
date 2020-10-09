@@ -20,15 +20,18 @@ public class CSVUtils {
 	private static String followCVSformat(String value) {
 
 		// String result = value;
-		if (value.contains(",")) {
-			value = value.replace(",", " ");
-		}
-
 		/*
-		 * if (value.contains("\"")) { value = value.replace("\"", "\"\""); } if
-		 * (value.startsWith("\"\"") && value.endsWith("\"\"")) { value =
-		 * value.substring(1, value.length() - 1); }
+		 * if (value.contains(",")) { value = value.replace(",", " "); }
 		 */
+
+		 if (value.contains("\"")) {
+	        	value = value.replace("\"", "\"\"");
+	        }
+	        
+	        if(value.startsWith("\"\"") && value.endsWith("\"\"")) {
+	        	value = value.substring(1, value.length()-1);
+			}
+		
 		return value;
 
 	}

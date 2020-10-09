@@ -114,7 +114,7 @@ public class DataPublishDaoImpl implements DataPublishDao {
 				OracleGTMDeniedParties oracleGTMDeniedParties = new OracleGTMDeniedParties();
 				oracleGTMDeniedParties.setDplId("900_" + rs.getInt("DPL_ID"));
 				if (StringUtils.isBlank(rs.getString("DPL_ENTITY_TYPE"))
-						|| rs.getString("DPL_ENTITY_TYPE").trim().equalsIgnoreCase("Individual")) {
+						|| rs.getString("DPL_ENTITY_TYPE").trim().equalsIgnoreCase("Individual")|| rs.getString("DPL_ENTITY_TYPE").trim().equalsIgnoreCase("ALL")) {
 					oracleGTMDeniedParties.setFirstName(rs.getString("DPL_NAME"));
 				}
 				else if (rs.getString("DPL_ENTITY_TYPE").trim().equalsIgnoreCase("Firm")
@@ -123,14 +123,17 @@ public class DataPublishDaoImpl implements DataPublishDao {
 				}
 				else if (rs.getString("DPL_ENTITY_TYPE").trim().equalsIgnoreCase("Vessel")) {
 					oracleGTMDeniedParties.setVessleName(rs.getString("DPL_NAME").trim());
+				}else {
+					oracleGTMDeniedParties.setFirstName(rs.getString("DPL_NAME"));
 				}
+				
 				oracleGTMDeniedParties.setDplAddress1(rs.getString("DPL_ADDRESS_1"));
 				oracleGTMDeniedParties.setDplAddress2(rs.getString("DPL_ADDRESS_2"));
 				if (StringUtils.isNotBlank(rs.getString("DPL_ADDRESS_3"))) {
 					oracleGTMDeniedParties.setCity(rs.getString("DPL_ADDRESS_3").trim());
 				}
 				else {
-					oracleGTMDeniedParties.setCity(null);
+					oracleGTMDeniedParties.setCity("");
 				}
 				oracleGTMDeniedParties.setProvince(rs.getString("DPL_STATE"));
 				oracleGTMDeniedParties.setPostalCode(rs.getString("DPL_ZIP"));
@@ -155,6 +158,7 @@ public class DataPublishDaoImpl implements DataPublishDao {
 					}
 					
 				}
+				//expiry date changes
 				if (StringUtils.isNotBlank(rs.getString("DPL_EXPIRY_DATE"))) {
 					if (rs.getString("DPL_EXPIRY_DATE").trim().contains("Indef")
 							|| rs.getString("DPL_EXPIRY_DATE").trim().contains("UNTIL")) {
@@ -165,6 +169,8 @@ public class DataPublishDaoImpl implements DataPublishDao {
 								.format(dateParserMMDD.parse(StringUtils.trim(rs.getString("DPL_EXPIRY_DATE"))))));
 					}
 
+				}else {
+					oracleGTMDeniedParties.setDplExpiryDate("99991231000000");
 				}
 				
 				oracleGTMDeniedParties.setDeniedCode(rs.getString("DPL_CATEGORY"));
@@ -215,7 +221,12 @@ public class DataPublishDaoImpl implements DataPublishDao {
 				else {
 					oracleGTMDeniedParties.setCountry1IsoCode("XX");
 				}
-				oracleGTMDeniedParties.setDplSeeAlso(rs.getString("DPL_SEE_ALSO"));
+				if(StringUtils.isNotBlank(rs.getString("DPL_SEE_ALSO"))) {
+					oracleGTMDeniedParties.setDplSeeAlso(rs.getString("DPL_SEE_ALSO").trim());
+				}else {
+					oracleGTMDeniedParties.setDplSeeAlso(rs.getString("DPL_SEE_ALSO"));
+				}
+				
 
 				oracleGTMParsedData.add(oracleGTMDeniedParties);
 				

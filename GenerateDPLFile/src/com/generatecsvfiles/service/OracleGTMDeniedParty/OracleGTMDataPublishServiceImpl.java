@@ -18,6 +18,7 @@ import java.util.Map;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
+
 import com.generatecsvfiles.dto.OracleGTMDeniedParties;
 import com.generatecsvfiles.dto.OracleGTMDeniedPartiesLink;
 import com.generatecsvfiles.service.OracleGTMDeniedParty.Dao.DataPublishDao;
@@ -28,9 +29,11 @@ import com.generatecsvfiles.utility.Constants;
 import com.generatecsvfiles.utility.PropertyLoader;
 import com.generatecsvfiles.utility.WlcsUtil;
 
+
 import au.com.bytecode.opencsv.CSVReader;
 
 import org.apache.commons.lang3.StringUtils;
+import java.text.DecimalFormat;
 
 
 
@@ -51,7 +54,7 @@ public class OracleGTMDataPublishServiceImpl implements OracleGTMDataPublishServ
 	
 	public static final String FILE_FORMAT_XML = ".xml";
 	public static final String FILE_FORMAT_ZIP = ".zip";
-
+	private static final  String _doubleQuote = "\"";
 	
 	private Integer recordsToFetch=1000;
 
@@ -252,7 +255,7 @@ public class OracleGTMDataPublishServiceImpl implements OracleGTMDataPublishServ
 			Integer count;
 
 			// add both active as well as deleted status
-			dplStatuses = dplStatuses(null);
+			dplStatuses = dplStatuses(Constants.ACTIVE);
 			if (type.equalsIgnoreCase(Constants.ENTIRE)) {
 
 				// fileName = EASE_ENTIRE;
@@ -292,7 +295,7 @@ public class OracleGTMDataPublishServiceImpl implements OracleGTMDataPublishServ
 				}
 
 				lastRecfetched = end;
-				start = end;
+				start = end+1;
 				end = end + recordsToFetch;
 			}
 
@@ -703,6 +706,10 @@ public class OracleGTMDataPublishServiceImpl implements OracleGTMDataPublishServ
 	}
 	
 	public Map<String,Object> setFinalDPLListBasedONAKA(List<OracleGTMDeniedParties> oracleGTMDeniedPartiesList) {
+		final String[] tokenstoReplace = { "a.k.a.", "d.b.a.", "n.k.a.", "a.k.a", "d.b.a", "n.k.a", "A.K.A.",
+				"D.B.A.", "N.K.A.", "A.K.A", "D.B.A", "N.K.A","c/o" };
+		 final String[] replacedBy = { "", "", "", "", "", "", "", "", "", "", "", "","" };
+		 
 		List<OracleGTMDeniedParties> finaldeniedPartiesList = new ArrayList<OracleGTMDeniedParties>();
 		List<OracleGTMDeniedPartiesLink> dplLinkAKAList = new ArrayList<OracleGTMDeniedPartiesLink>();
 		 Map<String, Object> finalDPLListMap = new HashMap<>();
@@ -716,13 +723,13 @@ public class OracleGTMDataPublishServiceImpl implements OracleGTMDataPublishServ
 			oracleGTMDeniedParties.setDplId(dplData.getDplId());
 			
 			if (StringUtils.isNotBlank(dplData.getFirstName())) {
-				oracleGTMDeniedParties.setFirstName(dplData.getFirstName());
+				oracleGTMDeniedParties.setFirstName(dplData.getFirstName().trim());
 			}
 			else if (StringUtils.isNotBlank(dplData.getCompanyName())) {
-				oracleGTMDeniedParties.setCompanyName(dplData.getCompanyName());
+				oracleGTMDeniedParties.setCompanyName(dplData.getCompanyName().trim());
 			}
 			else if (StringUtils.isNotBlank(dplData.getVessleName())) {
-				oracleGTMDeniedParties.setVessleName(dplData.getVessleName());
+				oracleGTMDeniedParties.setVessleName(dplData.getVessleName().trim());
 			}
 			
 			oracleGTMDeniedParties.setDplAddress1(dplData.getDplAddress1());
@@ -741,6 +748,7 @@ public class OracleGTMDataPublishServiceImpl implements OracleGTMDataPublishServ
 			oracleGTMDeniedParties.setRulingVolume(dplData.getRulingVolume());
 			oracleGTMDeniedParties.setFederalRegDate(dplData.getFederalRegDate());
 			oracleGTMDeniedParties.setNotes(dplData.getNotes());
+			oracleGTMDeniedParties.setGtmDateVersionId(dplData.getGtmDateVersionId());
 			oracleGTMDeniedParties.setIsInUse(dplData.getIsInUse());
 			oracleGTMDeniedParties.setDplURL(dplData.getDplURL());
 			oracleGTMDeniedParties.setDomainName(dplData.getDomainName());
@@ -750,14 +758,15 @@ public class OracleGTMDataPublishServiceImpl implements OracleGTMDataPublishServ
 			
 			if(StringUtils.isNotBlank(dplData.getDplSeeAlso())) {
 				
-				String[] akaParts = StringUtils.replace(dplData.getDplSeeAlso(), "a.k.a.", "").split(";");
+				String[] akaParts =StringUtils.replaceEach(dplData.getDplSeeAlso(), tokenstoReplace, replacedBy).split(";");
 				int i=0;
+				DecimalFormat decimalFormat = new DecimalFormat("000");
 				for(String aka:akaParts) {
 					i++;
 					OracleGTMDeniedParties oracleGTMDeniedPartiesAka = new OracleGTMDeniedParties();
 					OracleGTMDeniedPartiesLink oracleGTMDeniedPartiesLink=new OracleGTMDeniedPartiesLink();
 
-					oracleGTMDeniedPartiesAka.setDplId(dplData.getDplId()+"-"+i);
+					oracleGTMDeniedPartiesAka.setDplId(dplData.getDplId()+"-"+decimalFormat.format(i));
 					//set link information
 					oracleGTMDeniedPartiesLink.setGtmParentDPLID(StringUtils.replace(dplData.getDplId(), "900_", ""));
 					oracleGTMDeniedPartiesLink.setGtmChildDPLID(StringUtils.replace(oracleGTMDeniedPartiesAka.getDplId(), "900_", ""));
@@ -765,13 +774,13 @@ public class OracleGTMDataPublishServiceImpl implements OracleGTMDataPublishServ
 					oracleGTMDeniedPartiesLink.setDomainName("GTM");
 					
 					if (StringUtils.isNotBlank(dplData.getFirstName())) {
-						oracleGTMDeniedPartiesAka.setFirstName(aka);
+						oracleGTMDeniedPartiesAka.setFirstName(aka.trim());
 					}
 					else if (StringUtils.isNotBlank(dplData.getCompanyName())) {
-						oracleGTMDeniedPartiesAka.setCompanyName(aka);
+						oracleGTMDeniedPartiesAka.setCompanyName(aka.trim());
 					}
 					else if (StringUtils.isNotBlank(dplData.getVessleName())) {
-						oracleGTMDeniedPartiesAka.setVessleName(aka);
+						oracleGTMDeniedPartiesAka.setVessleName(aka.trim());
 					}
 					
 					oracleGTMDeniedPartiesAka.setDplAddress1(dplData.getDplAddress1());
@@ -790,6 +799,7 @@ public class OracleGTMDataPublishServiceImpl implements OracleGTMDataPublishServ
 					oracleGTMDeniedPartiesAka.setRulingVolume(dplData.getRulingVolume());
 					oracleGTMDeniedPartiesAka.setFederalRegDate(dplData.getFederalRegDate());
 					oracleGTMDeniedPartiesAka.setNotes(dplData.getNotes());
+					oracleGTMDeniedPartiesAka.setGtmDateVersionId(dplData.getGtmDateVersionId());
 					oracleGTMDeniedPartiesAka.setIsInUse(dplData.getIsInUse());
 					oracleGTMDeniedPartiesAka.setDplURL(dplData.getDplURL());
 					oracleGTMDeniedPartiesAka.setDomainName(dplData.getDomainName());
@@ -811,55 +821,286 @@ public class OracleGTMDataPublishServiceImpl implements OracleGTMDataPublishServ
 			throws IOException, Exception {
 
 		for (OracleGTMDeniedParties deniedParty : deniedParties) {
-
+			String blank="";
 			List<String> list = new ArrayList<>();
 
 			list.add(deniedParty.getDplId());
 			list.add(deniedParty.getDplId());
-			list.add(deniedParty.getFirstName());
-			list.add(deniedParty.getLastName());
-			list.add(deniedParty.getCompanyName());
-			list.add(deniedParty.getVessleName());
-			list.add(deniedParty.getDplAddress1());
-			list.add(deniedParty.getDplAddress2());
-			list.add(deniedParty.getAddressLine());
-			list.add(deniedParty.getCity());
-			list.add(deniedParty.getDplState());
-			list.add(deniedParty.getDplZip());
-			list.add(deniedParty.getCountryName());
-			list.add(deniedParty.getDplEffectiveDate());
-			list.add(deniedParty.getDplExpiryDate());
-			list.add(deniedParty.getDateOFBirth());
-			list.add(deniedParty.getPlaceOFBirth());
-			list.add(deniedParty.getPassportNumber());
-			list.add(deniedParty.getPassportIssueCountry());
-			list.add(deniedParty.getPasspostIssueDate());
-			list.add(deniedParty.getAltPassportNumber());
-			list.add(deniedParty.getAltpassportIssueCountry());
-			list.add(deniedParty.getAltpasspostIssueDate());
-			list.add(deniedParty.getDrivierLicenseNumber());
-			list.add(deniedParty.getDrivierLicenseAuthority());
-			list.add(deniedParty.getCitizenShip());
-			list.add(deniedParty.getNationality());
-			list.add(deniedParty.getSsn());
-			list.add(deniedParty.getNit());
-			list.add(deniedParty.getCedula());
-			list.add(deniedParty.getDeniedCode());
-			list.add(deniedParty.getEntryDate());
-			list.add(deniedParty.getEntryId().toString());
-			list.add(deniedParty.getAgencyCode());
-			list.add(deniedParty.getRulingVolume());
-			list.add(deniedParty.getRulingPageNumber());
-			list.add(deniedParty.getFederalRegDate());
-			list.add(deniedParty.getNotes());
-			list.add(deniedParty.getGtmDateVersionId());
-			list.add(deniedParty.getIsInUse());
-			list.add(deniedParty.getScreeningStatus());
-			list.add(deniedParty.getDplURL());
-			list.add(deniedParty.getDomainName());
-			list.add(deniedParty.getCountry1IsoCode());
+			
+			if(StringUtils.isNotBlank(deniedParty.getFirstName())) {
+				StringBuilder firstName = new StringBuilder("");
+				firstName.append(_doubleQuote);
+				firstName.append(deniedParty.getFirstName());
+				firstName.append(_doubleQuote);
+				list.add(firstName.toString());
+			}else {
+				list.add(blank);
+			}
+			if(StringUtils.isNotBlank(deniedParty.getLastName())) {
+				list.add(deniedParty.getLastName());
+			}else {
+				list.add(blank);
+			}
+			if(StringUtils.isNotBlank(deniedParty.getCompanyName())) {
+				StringBuilder companyName = new StringBuilder("");
+				companyName.append(_doubleQuote);
+				companyName.append(deniedParty.getCompanyName());
+				companyName.append(_doubleQuote);
+				list.add(companyName.toString());
+			}else {
+				list.add(blank);
+			}
+			if(StringUtils.isNotBlank(deniedParty.getVessleName())) {
+				StringBuilder vesselName = new StringBuilder("");
+				vesselName.append(_doubleQuote);
+				vesselName.append(deniedParty.getVessleName());
+				vesselName.append(_doubleQuote);
+				list.add(vesselName.toString());
+			}else {
+				list.add(blank);
+			}
+			if(StringUtils.isNotBlank(deniedParty.getDplAddress1())) {
+				StringBuilder address1 = new StringBuilder("");
+				address1.append(_doubleQuote);
+				address1.append(deniedParty.getDplAddress1());
+				address1.append(_doubleQuote);
+				list.add(address1.toString());
+			}else {
+				list.add(blank);
+			}
+			if(StringUtils.isNotBlank(deniedParty.getDplAddress2())) {
+				StringBuilder address2 = new StringBuilder("");
+				address2.append(_doubleQuote);
+				address2.append(deniedParty.getDplAddress2());
+				address2.append(_doubleQuote);
+				list.add(address2.toString());
+				
+			}else {
+				list.add(blank);
+			}
+			if(StringUtils.isNotBlank(deniedParty.getAddressLine())) {
+				StringBuilder addressLine = new StringBuilder("");
+				addressLine.append(_doubleQuote);
+				addressLine.append(deniedParty.getAddressLine());
+				addressLine.append(_doubleQuote);
+				list.add(addressLine.toString());
+				
+			}else {
+				list.add(blank);
+			}
+			if(StringUtils.isNotBlank(deniedParty.getCity())) {
+				StringBuilder city = new StringBuilder("");
+				city.append(_doubleQuote);
+				city.append(deniedParty.getCity());
+				city.append(_doubleQuote);
+				list.add(city.toString());
+				
+			}else {
+				list.add(blank);
+			}
+			if(StringUtils.isNotBlank(deniedParty.getProvince())) {
+				StringBuilder province = new StringBuilder("");
+				province.append(_doubleQuote);
+				province.append(deniedParty.getProvince());
+				province.append(_doubleQuote);
+				list.add(province.toString());
+				
+			}else {
+				list.add(blank);
+			}
+			if(StringUtils.isNotBlank(deniedParty.getPostalCode())) {
+				StringBuilder dplZip = new StringBuilder("");
+				dplZip.append(_doubleQuote);
+				dplZip.append(deniedParty.getPostalCode());
+				dplZip.append(_doubleQuote);
+				list.add(dplZip.toString());
+				
+			}else {
+				list.add(blank);
+			}
+			if(StringUtils.isNotBlank(deniedParty.getCountryName())) {
+				list.add(deniedParty.getCountryName());
+			}else {
+				list.add(blank);
+			}
+			if(StringUtils.isNotBlank(deniedParty.getDplEffectiveDate())) {
+				list.add(deniedParty.getDplEffectiveDate());
+			}else {
+				list.add(blank);
+			}
+			if(StringUtils.isNotBlank(deniedParty.getDplExpiryDate())) {
+				list.add(deniedParty.getDplExpiryDate());
+			}else {
+				list.add(blank);
+			}
+			if(StringUtils.isNotBlank(deniedParty.getDateOFBirth())) {
+				list.add(deniedParty.getDateOFBirth());
+			}else {
+				list.add(blank);
+			}
+			if(StringUtils.isNotBlank(deniedParty.getPlaceOFBirth())) {
+				list.add(deniedParty.getPlaceOFBirth());
+			}else {
+				list.add(blank);
+			}
+			if(StringUtils.isNotBlank(deniedParty.getPassportNumber())) {
+				list.add(deniedParty.getPassportNumber());
+			}else {
+				list.add(blank);
+			}
+			if(StringUtils.isNotBlank(deniedParty.getPassportIssueCountry())) {
+				list.add(deniedParty.getPassportIssueCountry());
+			}else {
+				list.add(blank);
+			}
+			if(StringUtils.isNotBlank(deniedParty.getPasspostIssueDate())) {
+				list.add(deniedParty.getPasspostIssueDate());
+			}else {
+				list.add(blank);
+			}
+			if(StringUtils.isNotBlank(deniedParty.getAltPassportNumber())) {
+				list.add(deniedParty.getAltPassportNumber());
+			}else {
+				list.add(blank);
+			}
+			if(StringUtils.isNotBlank(deniedParty.getAltpassportIssueCountry())) {
+				list.add(deniedParty.getAltpassportIssueCountry());
+			}else {
+				list.add(blank);
+			}
+			if(StringUtils.isNotBlank(deniedParty.getAltpasspostIssueDate())) {
+				list.add(deniedParty.getAltpasspostIssueDate());
+			}else {
+				list.add(blank);
+			}
+			if(StringUtils.isNotBlank(deniedParty.getDrivierLicenseNumber())) {
+				list.add(deniedParty.getDrivierLicenseNumber());
+			}else {
+				list.add(blank);
+			}
+			if(StringUtils.isNotBlank(deniedParty.getDrivierLicenseAuthority())) {
+				list.add(deniedParty.getDrivierLicenseAuthority());
+			}else {
+				list.add(blank);
+			}
+			if(StringUtils.isNotBlank(deniedParty.getCitizenShip())) {
+				list.add(deniedParty.getCitizenShip());
+			}else {
+				list.add(blank);
+			}
+			if(StringUtils.isNotBlank(deniedParty.getNationality())) {
+				list.add(deniedParty.getNationality());
+			}else {
+				list.add(blank);
+			}
+			if(StringUtils.isNotBlank(deniedParty.getSsn())) {
+				list.add(deniedParty.getSsn());
+			}else {
+				list.add(blank);
+			}
+			if(StringUtils.isNotBlank(deniedParty.getNit())) {
+				list.add(deniedParty.getNit());
+			}else {
+				list.add(blank);
+			}
+			if(StringUtils.isNotBlank(deniedParty.getCedula())) {
+				list.add(deniedParty.getCedula());
+			}else {
+				list.add(blank);
+			}
+			
+			if(StringUtils.isNotBlank(deniedParty.getDeniedCode())) {
+				StringBuilder deniedCode = new StringBuilder("");
+				deniedCode.append(_doubleQuote);
+				deniedCode.append(deniedParty.getDeniedCode());
+				deniedCode.append(_doubleQuote);
+				list.add(deniedCode.toString());
+				
+			}else {
+				list.add(blank);
+			}
+			if(StringUtils.isNotBlank(deniedParty.getEntryDate())) {
+				list.add(deniedParty.getEntryDate());
+			}else {
+				list.add(blank);
+			}
+			if(StringUtils.isNotBlank(deniedParty.getEntryId().toString())) {
+				list.add(deniedParty.getEntryId().toString());
+			}else {
+				list.add(blank);
+			}
+			if(StringUtils.isNotBlank(deniedParty.getAgencyCode())) {
+				list.add(deniedParty.getAgencyCode());
+			}else {
+				list.add(blank);
+			}
+			
+			if(StringUtils.isNotBlank(deniedParty.getRulingVolume())) {
+				StringBuilder rulingVolume = new StringBuilder("");
+				rulingVolume.append(_doubleQuote);
+				rulingVolume.append(deniedParty.getRulingVolume());
+				rulingVolume.append(_doubleQuote);
+				list.add(rulingVolume.toString());
+				
+			}else {
+				list.add(blank);
+			}
+			if(StringUtils.isNotBlank(deniedParty.getRulingPageNumber())) {
+				list.add(deniedParty.getRulingPageNumber());
+			}else {
+				list.add(blank);
+			}
+			if(StringUtils.isNotBlank(deniedParty.getFederalRegDate())) {
+				list.add(deniedParty.getFederalRegDate());
+			}else {
+				list.add(blank);
+			}
+			if(StringUtils.isNotBlank(deniedParty.getNotes())) {
+				StringBuilder notes = new StringBuilder("");
+				notes.append(_doubleQuote);
+				notes.append(deniedParty.getNotes());
+				notes.append(_doubleQuote);
+				list.add(notes.toString());
+				
+			}else {
+				list.add(blank);
+			}
+			if(StringUtils.isNotBlank(deniedParty.getGtmDateVersionId())) {
+				list.add(deniedParty.getGtmDateVersionId());
+			}else {
+				list.add(blank);
+			}
+			if(StringUtils.isNotBlank(deniedParty.getIsInUse())) {
+				list.add(deniedParty.getIsInUse());
+			}else {
+				list.add(blank);
+			}
+			if(StringUtils.isNotBlank(deniedParty.getScreeningStatus())) {
+				list.add(deniedParty.getScreeningStatus());
+			}else {
+				list.add(blank);
+			}
+			if(StringUtils.isNotBlank(deniedParty.getDplURL())) {
+				list.add(deniedParty.getDplURL());
+			}else {
+				list.add(blank);
+			}
+			if(StringUtils.isNotBlank(deniedParty.getDomainName())) {
+				list.add(deniedParty.getDomainName());
+			}else {
+				list.add(blank);
+			}
+			if(StringUtils.isNotBlank(deniedParty.getCountry1IsoCode())) {
+				list.add(deniedParty.getCountry1IsoCode());
+			}else {
+				list.add(blank);
+			}
+			
+			
 
 			// handle commma inside value
+			
+			
 			CSVUtils.writeLine(fw, list, ' ', ' ');
 
 		}
@@ -923,14 +1164,42 @@ public class OracleGTMDataPublishServiceImpl implements OracleGTMDataPublishServ
 
 			for (OracleGTMDeniedPartiesLink dplLink : oracleGTMDeniedPartiesLink) {
 				List<String> list = new ArrayList<>();
-
-				list.add(dplLink.getGtmParentDPLID());
-				list.add(dplLink.getGtmChildDPLID());
-				list.add(dplLink.getDomainName());
-				list.add(dplLink.getInsertUser());
-				list.add(dplLink.getInsertDate());
-				list.add(dplLink.getUpdateUser());
-				list.add(dplLink.getUpdateDate());
+				String blank="";
+				if(StringUtils.isNotBlank(dplLink.getGtmParentDPLID())) {
+					list.add(dplLink.getGtmParentDPLID());
+				}else {
+					list.add(blank);
+				}
+				if(StringUtils.isNotBlank(dplLink.getGtmChildDPLID())) {
+					list.add(dplLink.getGtmChildDPLID());
+				}else {
+					list.add(blank);
+				}	
+				if(StringUtils.isNotBlank(dplLink.getDomainName())) {
+					list.add(dplLink.getDomainName());
+				}else {
+					list.add(blank);
+				}
+				if(StringUtils.isNotBlank(dplLink.getInsertUser())) {
+					list.add(dplLink.getInsertUser());
+				}else {
+					list.add(blank);
+				}
+				if(StringUtils.isNotBlank(dplLink.getInsertDate())) {
+					list.add(dplLink.getInsertDate());
+				}else {
+					list.add(blank);
+				}
+				if(StringUtils.isNotBlank(dplLink.getUpdateUser())) {
+					list.add(dplLink.getUpdateUser());
+				}else {
+					list.add(blank);
+				}
+				if(StringUtils.isNotBlank(dplLink.getUpdateDate())) {
+					list.add(dplLink.getUpdateDate());
+				}else {
+					list.add(blank);
+				}
 				
 				CSVUtils.writeLine(fw, list, ' ', ' ');
 
